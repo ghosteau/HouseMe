@@ -1,0 +1,108 @@
+---
+title: "California Housing"
+author: "Manny McGrail"
+date: "2023-12-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, warning=FALSE}
+# Load in libraries
+library(keras)
+library(dplyr)
+library(tidyr)
+library(magrittr)
+library(ggplot2)
+```
+
+
+```{r}
+# I modified this data to be numeric for the "ocean proximity" value for ease of use.
+# 1 -- NEAR BAY
+# 2 -- NEAR OCEAN
+# 3 -- INLAND
+# 4 -- <1H OCEAN
+# 5 -- ISLAND
+
+# Update 2: One-hot encoded the locations for better efficiency
+# Update 3: Plotted with GGPlot2
+
+cali_data <- read.csv("C:/Users/super/Desktop/Coding Projects/Data Sets/California Housing (Numeric Modification).csv")
+
+ggplot(cali_data, aes(x = median_house_value)) +
+         geom_histogram(color = "lightblue", binwidth = 1000)
+  
+```
+
+
+```{r}
+cali_data <- cali_data %>% 
+  mutate(value = 1) %>%
+  pivot_wider(names_from = ocean_proximity, values_from = value, values_fill = 0)
+
+str(cali_data)
+```
+
+
+```{r}
+cali_data <- as.matrix(cali_data)
+colnames(cali_data) <- NULL
+ncol(cali_data)
+```
+
+```{r}
+set.seed(90)
+
+index <- sample(2, nrow(cali_data), replace = T, prob = c(0.7, 0.3))
+trainingSet <- cali_data[index == 1, c(1:8, 10:14)]
+testingSet <- cali_data[index == 2, c(1:8, 10:14)]
+
+trainingTarget <- cali_data[index == 1, 9]
+testingTarget <- cali_data[index == 2, 9]
+```
+
+
+```{r}
+mean <- colMeans(trainingSet)
+std <- apply(trainingSet, 2, sd)
+
+trainingSet <- scale(trainingSet, center = mean, scale = std)
+testingSet <- scale(testingSet, center = mean, scale = std)
+```
+
+
+```{r, warning=FALSE}
+model <- keras_model_sequential()
+
+model %>%
+  layer_dense(units = 256, activation = "relu", input_shape = c(13)) %>%
+  layer_dense(units = 256, activation = "relu") %>%
+  layer_dense(units = 144) %>%
+  layer_dense(units = 1)
+```
+
+
+```{r, warning=FALSE}
+# Compile the model
+model %>% compile(loss = "mse", optimizer = "adam", metrics = "mae")
+```
+
+
+```{r, results='hide'}
+# Fit the model; only running 10 epochs for the sake of efficiency. I highly encourage you to increase that for accuracy.
+mymodel <- model %>%
+  fit(trainingSet,
+      trainingTarget,
+      epochs = 30,
+      batch_size = 8,
+      validation_split = 0.2)
+```
+
+```{r}
+plot(mymodel)
+model %>% evaluate(testingSet, testingTarget)
+```
