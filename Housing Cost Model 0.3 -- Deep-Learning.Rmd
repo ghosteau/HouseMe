@@ -93,7 +93,7 @@ model %>% compile(loss = "mse", optimizer = "adam", metrics = "mae")
 
 
 ```{r, results='hide'}
-# Fit the model; only running 10 epochs for the sake of efficiency. I highly encourage you to increase that for accuracy.
+# Fit the model
 mymodel <- model %>%
   fit(trainingSet,
       trainingTarget,
